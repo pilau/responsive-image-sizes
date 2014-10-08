@@ -91,6 +91,7 @@ class Responsive_Image_Sizes {
 
 		// Other hooks
 		add_action( 'wp_loaded', array( $this, 'gather_image_sizes' ) );
+		add_filter( 'wp_get_attachment_image_attributes', array( $this, 'filter_image_attributes' ), 10, 2 );
 
 	}
 
@@ -246,9 +247,22 @@ class Responsive_Image_Sizes {
 
 		if ( ! $settings ) {
 
+			// Image sizes may not have been gathered
+			if ( ! $this->image_sizes ) {
+				$this->gather_image_sizes();
+			}
+
 			// Defaults
-			$settings = array(
-			);
+			$settings = array();
+
+			// Go through image sizes
+			foreach ( $this->image_sizes as $size_name => $size_data ) {
+				$settings[ 'use_' . $size_name ] = false;
+				$settings[ 'for_' . $size_name ] = $size_data['width'];
+			}
+
+			// Retina
+			$settings[ 'retina' ] = false;
 
 		}
 
@@ -274,17 +288,22 @@ class Responsive_Image_Sizes {
 		// Submitted?
 		if ( isset( $_POST[ $this->plugin_slug . '_settings_admin_nonce' ] ) && check_admin_referer( $this->plugin_slug . '_settings', $this->plugin_slug . '_settings_admin_nonce' ) ) {
 
-			// Gather into array
-			$settings = array(
-				'footnotes_post_types'		=> $_REQUEST['footnotes_post_types'],
-				'auto_list_footnotes'		=> isset( $_REQUEST['auto_list_footnotes'] ),
-				'auto_link_note_urls'		=> isset( $_REQUEST['auto_link_note_urls'] ),
-				'footnotes_wrapper_tag'		=> preg_replace( '/[^a-z]/', '', $_REQUEST['footnotes_wrapper_tag'] ),
-				'list_footnotes_heading'	=> wp_strip_all_tags( $_REQUEST['list_footnotes_heading'] ),
-				'before_number'				=> wp_strip_all_tags( $_REQUEST['before_number'] ),
-				'after_number'				=> wp_strip_all_tags( $_REQUEST['after_number'] ),
-				'ibid'						=> isset( $_REQUEST['ibid'] ),
-			);
+			// Init settings array
+			$settings = array();
+
+			// Image sizes may not have been gathered
+			if ( ! $this->image_sizes ) {
+				$this->gather_image_sizes();
+			}
+
+			// Go through image sizes
+			foreach ( $this->image_sizes as $size_name => $size_data ) {
+				$settings[ 'use_' . $size_name ] = isset( $_POST[ $this->plugin_slug . '_use' ] ) && is_array( $_POST[ $this->plugin_slug . '_use' ] ) && in_array( $size_name, $_POST[ $this->plugin_slug . '_use' ] );
+				$settings[ 'for_' . $size_name ] = intval( $_POST[ $this->plugin_slug . '_' . $size_name ] );
+			}
+
+			// Retina?
+			$settings[ 'retina' ] = isset( $_POST[ $this->plugin_slug . '_retina' ] );
 
 			// Save as option
 			$this->set_settings( $settings );
@@ -315,6 +334,45 @@ class Responsive_Image_Sizes {
 		// Now add custom sizes
 		$this->image_sizes = array_merge( $this->image_sizes, $_wp_additional_image_sizes );
 
+	}
+
+	/**
+	 * Filter WP image attributes
+	 *
+	 * @since    0.1
+	 */
+	public function filter_image_attributes( $attr, $attachment ) {
+
+		// Front-end only
+		if ( ! is_admin() ) {
+			$settings = $this->get_settings();
+
+			// Get the width of the image being used
+			$used_image_width = null;
+			$used_image_filename_parts = explode( '-', pathinfo( $attr['src'], PATHINFO_FILENAME ) );
+			if ( count( $used_image_filename_parts ) > 1 && strpos( end( $used_image_filename_parts ), 'x' ) !== false ) {
+				$used_image_dimensions = explode( 'x', end( $used_image_filename_parts ) );
+			} else {
+				$used_image_dimensions = wp_get_attachment_image_src( $attachment->ID, 'full' );
+				array_shift( $used_image_dimensions ); // Remove the URL so the width is in the first position, to match above
+			}
+			$used_image_width = $used_image_dimensions[0];
+
+			if ( $used_image_width ) {
+
+				// Start building srcset
+				$srcset = array();
+
+
+
+				// Add srcset
+				$attr['srcset'] = implode( ', ', $srcset );
+
+			}
+
+		}
+
+		return $attr;
 	}
 
 }
