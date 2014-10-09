@@ -258,11 +258,10 @@ class Responsive_Image_Sizes {
 			// Go through image sizes
 			foreach ( $this->image_sizes as $size_name => $size_data ) {
 				$settings[ 'use_' . $size_name ] = false;
-				$settings[ 'for_' . $size_name ] = $size_data['width'];
 			}
 
 			// Retina
-			$settings[ 'retina' ] = false;
+			//$settings[ 'retina' ] = false;
 
 		}
 
@@ -299,11 +298,10 @@ class Responsive_Image_Sizes {
 			// Go through image sizes
 			foreach ( $this->image_sizes as $size_name => $size_data ) {
 				$settings[ 'use_' . $size_name ] = isset( $_POST[ $this->plugin_slug . '_use' ] ) && is_array( $_POST[ $this->plugin_slug . '_use' ] ) && in_array( $size_name, $_POST[ $this->plugin_slug . '_use' ] );
-				$settings[ 'for_' . $size_name ] = intval( $_POST[ $this->plugin_slug . '_' . $size_name ] );
 			}
 
 			// Retina?
-			$settings[ 'retina' ] = isset( $_POST[ $this->plugin_slug . '_retina' ] );
+			//$settings[ 'retina' ] = isset( $_POST[ $this->plugin_slug . '_retina' ] );
 
 			// Save as option
 			$this->set_settings( $settings );
